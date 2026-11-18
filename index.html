@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freelance Escrow Platform</title>
+
+    <!-- Ethers.js -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary: #4776e6;
+            --dark: #14213d;
+            --bg: #f4f7fc;
+            --white: #ffffff;
+            --text: #26334d;
+            --muted: #8994a8;
+            --border: #e7ebf2;
+            --green: #16a36a;
+            --red: #e05252;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        button,
+        input,
+        textarea {
+            font-family: inherit;
+        }
+
+        .navbar {
+            height: 75px;
+            background: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 35px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 23px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .logo span {
+            color: var(--primary);
+        }
+
+        .wallet-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #networkStatus {
+            font-size: 13px;
+            color: var(--green);
+        }
+
+        button {
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            padding: 11px 17px;
+            background: var(--primary);
+            color: white;
+            font-size: 14px;
+            transition: .2s;
+        }
+
+        button:hover {
+            opacity: .85;
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .layout {
+            display: flex;
+            min-height: calc(100vh - 75px);
+        }
+
+        .sidebar {
+            width: 240px;
+            background: var(--dark);
+            color: white;
+            padding: 30px 18px;
+            flex-shrink: 0;
+        }
+
+        .sidebar h3 {
+            font-size: 12px;
+            color: #91a0bd;
+            margin: 10px 12px 20px;
+        }
+
+        .sidebar a {
+            display: block;
+            color: #c5cde0;
+            text-decoration: none;
+            padding: 13px 15px;
+            border-radius: 8px;
+            margin-bottom: 7px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: #294474;
+            color: white;
+        }
+
+        .content {
+            flex: 1;
+            padding: 35px;
+            min-width: 0;
+        }
+
+        .welcome {
+            margin-bottom: 25px;
+        }
+
+        .welcome h1 {
+            font-size: 27px;
+            font-weight: 600;
+        }
+
+        .welcome p {
+            color: var(--muted);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .wallet-card {
+            background: linear-gradient(120deg, #315fc3, #6387ed);
+            color: white;
+            padding: 23px;
+            border-radius: 13px;
+            margin-bottom: 25px;
+        }
+
+        .wallet-card h3 {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .wallet-card p {
+            font-size: 14px;
+            margin-top: 5px;
+            overflow-wrap: anywhere;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-card p {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .stat-card h2 {
+            font-size: 25px;
+            margin-top: 8px;
+            color: var(--dark);
+        }
+
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 22px;
+            scroll-margin-top: 95px;
+        }
+
+        .section h2 {
+            font-size: 19px;
+            margin-bottom: 18px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .field.full {
+            grid-column: 1 / -1;
+        }
+
+        .field label {
+            font-size: 13px;
+            color: #56627a;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            outline: none;
+            font-size: 13px;
+            background: #fbfcff;
+            color: var(--text);
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: var(--primary);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 85px;
+        }
+
+        .submit-btn {
+            margin-top: 17px;
+            min-width: 150px;
+        }
+
+        .job-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .job-card {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px;
+            background: #fff;
+        }
+
+        .job-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .job-card h3 {
+            font-size: 16px;
+        }
+
+        .job-card p {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 7px;
+            overflow-wrap: anywhere;
+        }
+
+        .status {
+            font-size: 11px;
+            padding: 5px 12px;
+            border-radius: 30px;
+            background: #edf2ff;
+            color: #4776e6;
+        }
+
+        .job-details {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .tx-link {
+            color: var(--primary);
+            font-size: 12px;
+            text-decoration: none;
+        }
+
+        .notice {
+            padding: 13px 15px;
+            border-radius: 8px;
+            background: #eef4ff;
+            color: #315fc3;
+            font-size: 13px;
+            margin-bottom: 17px;
+        }
+
+        #message {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            max-width: 380px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            background: var(--dark);
+            color: white;
+            font-size: 13px;
+            z-index: 30;
+            display: none;
+            overflow-wrap: anywhere;
+            box-shadow: 0 5px 25px #0002;
+        }
+
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 25px;
+            font-size: 13px;
+        }
+
+        @media(max-width: 850px) {
+            .sidebar {
+                width: 190px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+        }
+
+        @media(max-width: 600px) {
+            .navbar {
+                padding: 12px;
+                height: auto;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+
+            .logo {
+                font-size: 19px;
+            }
+
+            .layout {
+                display: block;
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 12px;
+                display: flex;
+                overflow-x: auto;
+                gap: 5px;
+            }
+
+            .sidebar h3 {
+                display: none;
+            }
+
+            .sidebar a {
+                white-space: nowrap;
+                margin: 0;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .field.full {
+                grid-column: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="navbar">
+        <div class="logo">Freelance<span>Escrow</span></div>
+
+        <div class="wallet-area">
+            <span id="networkStatus">Not Connected</span>
+            <button id="connectWallet" onclick="connectWallet()">
+                Connect Wallet
+            </button>
+        </div>
+    </header>
+
+    <div class="layout">
+
+        <aside class="sidebar">
+            <h3>MAIN MENU</h3>
+            <a href="#dashboard" class="active">Dashboard</a>
+            <a href="#createJob">Create Job</a>
+            <a href="#myJobs">My Jobs</a>
+            <a href="#payment">Payment</a>
+            <a href="#dispute">Dispute Center</a>
+            <a href="#reviews">Rating & Review</a>
+            <a href="#transactions">Transaction History</a>
+        </aside>
+
+        <main class="content">
+
+            <section id="dashboard">
+                <div class="welcome">
+                    <h1>Dashboard</h1>
+                    <p>Freelance Escrow & Smart Payment Platform</p>
+                </div>
+
+                <div class="wallet-card">
+                    <h3>Connected Wallet</h3>
+                    <p id="walletAddress">Please connect your wallet</p>
+                    <p id="walletBalance">Balance: -- ETH</p>
+                    <p id="arbiterAddress">Arbiter: --</p>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-card">
+                        <p>Total Jobs</p>
+                        <h2 id="totalJobs">0</h2>
+                    </div>
+
+                    <div class="stat-card">
+                        <p>Escrow Balance</p>
+                        <h2 id="escrowBalance">0 ETH</h2>
+                    </div>
+
+                    <div class="stat-card">
+                        <p>Network</p>
+                        <h2 id="networkName">Unknown</h2>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Create Job -->
+            <section class="section" id="createJob">
+                <h2>+ Create New Job</h2>
+                <div class="notice">
+                    Create a freelance agreement using Ethereum Smart Contract.
+                </div>
+
+                <div class="form-grid">
+                    <div class="field full">
+                        <label>Freelancer Wallet Address</label>
+                        <input id="freelancer" placeholder="0x...">
+                    </div>
+
+                    <div class="field">
+                        <label>Job Title</label>
+                        <input id="jobTitle" placeholder="Website Development">
+                    </div>
+
+                    <div class="field">
+                        <label>Payment Amount (ETH)</label>
+                        <input id="jobAmount" type="number" min="0" step="any" placeholder="0.01">
+                    </div>
+
+                    <div class="field full">
+                        <label>Job Description</label>
+                        <textarea id="jobDescription" placeholder="Describe your project..."></textarea>
+                    </div>
+
+                    <div class="field full">
+                        <label>Deadline</label>
+                        <input id="deadline" type="datetime-local">
+                    </div>
+                </div>
+
+                <button class="submit-btn" onclick="createJob()">Create Contract</button>
+            </section>
+
+            <!-- Jobs -->
+            <section class="section" id="myJobs">
+                <h2>My Jobs</h2>
+                <button onclick="loadJobs()">Refresh Jobs</button>
+                <div class="job-list" id="jobList">
+                    <p class="empty">Connect Wallet to view jobs.</p>
+                </div>
+            </section>
+
+            <!-- Payment -->
+            <section class="section" id="payment">
+                <h2>Deposit Payment</h2>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Job ID</label>
+                        <input id="depositJobId" type="number" min="0" placeholder="0">
+                    </div>
+                    <div class="field">
+                        <label>Amount (ETH)</label>
+                        <input id="depositAmount" type="number" min="0" step="any" placeholder="0.01">
+                    </div>
+                </div>
+                <button class="submit-btn" onclick="depositPayment()">Deposit ETH</button>
+
+                <hr style="margin:25px 0;border:0;border-top:1px solid var(--border)">
+
+                <h2>Approve & Release Payment</h2>
+                <div class="field">
+                    <label>Job ID</label>
+                    <input id="releaseJobId" type="number" min="0" placeholder="0">
+                </div>
+                <button class="submit-btn" onclick="approveAndRelease()">Approve & Release</button>
+            </section>
+
+            <!-- Submit Work -->
+            <section class="section" id="submitWork">
+                <h2>Submit Work</h2>
+                <div class="field">
+                    <label>Job ID</label>
+                    <input id="submitJobId" type="number" min="0" placeholder="0">
+                </div>
+
+                <div class="field" style="margin-top:15px">
+                    <label>Work Evidence (URL or Hash)</label>
+                    <input id="workEvidence" placeholder="https://example.com/project">
+                </div>
+
+                <button class="submit-btn" onclick="submitWork()">Submit Work</button>
+            </section>
+
+            <!-- Dispute -->
+            <section class="section" id="dispute">
+                <h2>Dispute Center</h2>
+
+                <div class="field">
+                    <label>Job ID</label>
+                    <input id="disputeJobId" type="number" min="0" placeholder="0">
+                </div>
+
+                <div class="field" style="margin-top:15px">
+                    <label>Dispute Reason</label>
+                    <textarea id="disputeReason" placeholder="Explain the problem..."></textarea>
+                </div>
+
+                <button class="submit-btn" onclick="raiseDispute()">Raise Dispute</button>
+
+                <hr style="margin:25px 0;border:0;border-top:1px solid var(--border)">
+
+                <h2>Resolve Dispute (Arbiter Only)</h2>
+
+                <div class="field">
+                    <label>Job ID</label>
+                    <input id="resolveJobId" type="number" min="0" placeholder="0">
+                </div>
+
+                <div class="field" style="margin-top:15px">
+                    <label>Decision</label>
+                    <select id="decision" style="padding:12px;border:1px solid var(--border);border-radius:8px">
+                        <option value="true">Pay Freelancer</option>
+                        <option value="false">Refund Employer</option>
+                    </select>
+                </div>
+
+                <button class="submit-btn" onclick="resolveDispute()">Resolve Dispute</button>
+            </section>
+
+
+            <!-- ===== Rating & Review Section ===== -->
+            <section id="reviews" class="section">
+                <h2>Rating & Review Freelancer</h2>
+                <p>ให้คะแนนและเขียนรีวิวฟรีแลนซ์หลังจากงานเสร็จสิ้น</p>
+
+                <div class="card">
+                    <h3>Give a Rating</h3>
+
+                    <label>Job ID</label>
+                    <input type="number" id="reviewJobId" placeholder="Enter Job ID">
+
+                    <label>Rating</label>
+                    <select id="reviewRating">
+                        <option value="5">⭐⭐⭐⭐⭐ - Excellent</option>
+                        <option value="4">⭐⭐⭐⭐ - Very Good</option>
+                        <option value="3">⭐⭐⭐ - Good</option>
+                        <option value="2">⭐⭐ - Fair</option>
+                        <option value="1">⭐ - Poor</option>
+                    </select>
+
+                    <label>Comment</label>
+                    <textarea id="reviewComment" placeholder="Write your review..."></textarea>
+
+                    <button onclick="rateFreelancer()">
+                        Submit Review
+                    </button>
+                </div>
+
+                <div class="card">
+                    <h3>View Job Review</h3>
+
+                    <input type="number" id="viewReviewJobId" placeholder="Enter Job ID">
+
+                    <button onclick="viewReview()">
+                        View Review
+                    </button>
+
+                    <div id="reviewResult"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Freelancer Rating</h3>
+
+                    <input type="text" id="ratingFreelancerAddress" placeholder="Enter Freelancer Wallet Address">
+
+                    <button onclick="viewFreelancerRating()">
+                        Check Rating
+                    </button>
+
+                    <div id="freelancerRatingResult"></div>
+                </div>
+            </section>
+            <!-- ===== End Rating & Review Section ===== -->
+
+
+            <!-- Transactions -->
+            <section class="section" id="transactions">
+                <h2>Transaction History</h2>
+                <p style="font-size:13px;color:var(--muted);margin-bottom:12px">
+                    Transactions performed from this browser session.
+                </p>
+                <div id="transactionList">
+                    <p class="empty">No transactions yet.</p>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="message"></div>
+
+
+    <script>
+        /* =====================================
+           FREELANCE ESCROW - BLOCKCHAIN CONFIG
+        ===================================== */
+
+        // ใส่ Contract Address แบบเต็มจาก Remix
+        const CONTRACT_ADDRESS = "0xC3F205B899124b1C78631aC50eeDE783d19aA1E1";
+
+        // Ethereum Sepolia Chain ID
+        const SEPOLIA_CHAIN_ID = 11155111;
+
+        // Contract ABI
+        const CONTRACT_ABI = [
+            "function arbiter() view returns (address)",
+            "function jobCount() view returns (uint256)",
+            "function createJob(address,string,string,uint256,uint256) returns (uint256)",
+            "function depositPayment(uint256) payable",
+            "function submitWork(uint256,string)",
+            "function approveAndRelease(uint256)",
+            "function raiseDispute(uint256,string)",
+            "function resolveDispute(uint256,bool)",
+            "function getJob(uint256) view returns (tuple(uint256 jobId,address employer,address freelancer,string title,string description,uint256 amount,uint256 deadline,string workEvidence,string disputeReason,uint8 status))",
+            "function getJobCount() view returns (uint256)",
+            "function getEscrowBalance() view returns (uint256)",
+            "function getStatus(uint256) view returns (uint8)",
+            "function rateFreelancer(uint256 _jobId,uint8 _rating,string _comment)",
+            "function getReview(uint256 _jobId) view returns (tuple(address reviewer,uint8 rating,string comment,uint256 timestamp))",
+            "function hasReviewed(uint256) view returns (bool)",
+            "function totalRating(address) view returns (uint256)",
+            "function reviewCount(address) view returns (uint256)"
+        ];
+
+        let provider;
+        let signer;
+        let contract;
+        let currentAccount;
+
+        const statusNames = [
+            "Created",
+            "Funded",
+            "Submitted",
+            "Disputed",
+            "Released",
+            "Refunded"
+        ];
+
+        /* =====================================
+           MESSAGE
+        ===================================== */
+
+        function showMessage(message) {
+            const box = document.getElementById("message");
+            box.textContent = message;
+            box.style.display = "block";
+
+            clearTimeout(window.messageTimer);
+            window.messageTimer = setTimeout(() => {
+                box.style.display = "none";
+            }, 6000);
+        }
+
+        /* =====================================
+           CONNECT WALLET
+        ===================================== */
+
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) {
+                    throw new Error("Please install MetaMask first.");
+                }
+
+                await window.ethereum.request({
+                    method: "eth_requestAccounts"
+                });
+
+                provider = new ethers.BrowserProvider(window.ethereum);
+
+                signer = await provider.getSigner();
+
+                currentAccount = await signer.getAddress();
+
+                const network = await provider.getNetwork();
+
+                if (network.chainId !== BigInt(SEPOLIA_CHAIN_ID)) {
+                    showMessage("Please switch MetaMask to Sepolia Testnet.");
+                    return;
+                }
+
+                if (
+                    CONTRACT_ADDRESS === "YOUR_CONTRACT_ADDRESS" ||
+                    !ethers.isAddress(CONTRACT_ADDRESS)
+                ) {
+                    showMessage("Please configure your Contract Address first.");
+                    return;
+                }
+
+                contract = new ethers.Contract(
+                    CONTRACT_ADDRESS,
+                    CONTRACT_ABI,
+                    signer
+                );
+
+                document.getElementById("walletAddress").textContent =
+                    currentAccount;
+
+                document.getElementById("networkStatus").textContent =
+                    "● Sepolia Connected";
+
+                document.getElementById("networkName").textContent =
+                    "Sepolia";
+
+                document.getElementById("connectWallet").textContent =
+                    "Connected";
+
+                const balance = await provider.getBalance(currentAccount);
+
+                document.getElementById("walletBalance").textContent =
+                    "Balance: " + Number(ethers.formatEther(balance)).toFixed(5) + " ETH";
+
+                const arbiter = await contract.arbiter();
+
+                document.getElementById("arbiterAddress").textContent =
+                    "Arbiter: " + arbiter;
+
+                showMessage("Wallet connected successfully!");
+
+                await refreshDashboard();
+
+            } catch (error) {
+                console.error(error);
+                showMessage(error.shortMessage || error.message);
+            }
+        }
+
+        /* =====================================
+           CHECK NETWORK
+        ===================================== */
+
+        async function checkConnection() {
+            if (!window.ethereum) return;
+
+            const accounts = await window.ethereum.request({
+                method: "eth_accounts"
+            });
+
+            if (accounts.length > 0) {
+                await connectWallet();
+            }
+        }
+
+        if (window.ethereum) {
+            window.ethereum.on("accountsChanged", () => {
+                location.reload();
+            });
+
+            window.ethereum.on("chainChanged", () => {
+                location.reload();
+            });
+        }
+
+        /* =====================================
+           DASHBOARD
+        ===================================== */
+
+        async function refreshDashboard() {
+            try {
+                if (!contract) return;
+
+                const count = await contract.getJobCount();
+                const escrow = await contract.getEscrowBalance();
+
+                document.getElementById("totalJobs").textContent =
+                    count.toString();
+
+                document.getElementById("escrowBalance").textContent =
+                    Number(ethers.formatEther(escrow)).toFixed(5) + " ETH";
+
+                await loadJobs();
+
+            } catch (error) {
+                console.error(error);
+                showMessage("Cannot load dashboard.");
+            }
+        }
+
+        /* =====================================
+           CREATE JOB
+        ===================================== */
+
+        async function createJob() {
+            try {
+                if (!contract) throw new Error("Connect Wallet first.");
+
+                const freelancer =
+                    document.getElementById("freelancer").value.trim();
+
+                const title =
+                    document.getElementById("jobTitle").value.trim();
+
+                const description =
+                    document.getElementById("jobDescription").value.trim();
+
+                const amount =
+                    document.getElementById("jobAmount").value;
+
+                const deadline =
+                    document.getElementById("deadline").value;
+
+                if (!ethers.isAddress(freelancer))
+                    throw new Error("Invalid freelancer address.");
+
+                if (!title || !description || !amount || !deadline)
+                    throw new Error("Please complete all fields.");
+
+                const deadlineTimestamp = Math.floor(
+                    new Date(deadline).getTime() / 1000
+                );
+
+                if (deadlineTimestamp <= Math.floor(Date.now() / 1000))
+                    throw new Error("Deadline must be in the future.");
+
+                const amountWei = ethers.parseEther(amount);
+
+                const tx = await contract.createJob(
+                    freelancer,
+                    title,
+                    description,
+                    amountWei,
+                    deadlineTimestamp
+                );
+
+                showMessage("Creating job... Please confirm transaction.");
+
+                const receipt = await tx.wait();
+
+                addTransaction("Create Job", tx.hash);
+
+                showMessage("Job created successfully!");
+
+                await refreshDashboard();
+
+            } catch (error) {
+                console.error(error);
+                showMessage(error.shortMessage || error.reason || error.message);
+            }
+        }
+
+        /* =====================================
+           DEPOSIT PAYMENT
+        ===================================== */
+
+        async function depositPayment() {
+            try {
+                if (!contract) throw new Error("Connect Wallet first.");
+
+                const id = document.getElementById("depositJobId").value;
+                const amount = document.getElementById("depositAmount").value;
+
+                if (id === "" || !amount || Number(amount) <= 0)
+                    throw new Error("Enter Job ID and valid amount.");
+
+                const job = await contract.getJob(id);
+
+                const requiredAmount = job.amount;
+
+                if (ethers.parseEther(amount) !== requiredAmount)
+                    throw new Error(
+                        "Amount must exactly match the job payment: " +
+                        ethers.formatEther(requiredAmount) + " ETH"
+                    );
+
+                const tx = await contract.depositPayment(id, {
+                    value: requiredAmount
+                });
+
+                showMessage("Depositing ETH...");
+
+                await tx.wait();
+
+                addTransaction("Deposit Payment", tx.hash);
+
+                showMessage("Payment deposited successfully!");
+
+                await refreshDashboard();
+
+            } catch (error) {
+                console.error(error);
+                showMessage(error.shortMessage || error.reason || error.message);
+            }
+        }
+
+        /* =====================================
+           SUBMIT WORK
+        ===================================== */
+
+        async function submitWork() {
+            try {
+                if (!contract) throw new Error("Connect Wallet first.");
+
+                const id = document.getElementById("submitJobId").value;
+
+                const evidence =
+                    document.getElementById("workEvidence").value.trim();
+
+                if (id === "" || !evidence)
+                    throw new Error("Enter Job ID and work evidence.");
+
+                const tx = await contract.submitWork(id, evidence);
+
+                showMessage("Submitting work...");
+
+                await tx.wait();
+
+                addTransaction("Submit Work", tx.hash);
+
+                showMessage("Work submitted successfully!");
+
+                await refreshDashboard();
+
+            } catch (error) {
+                console.error(error);
+                showMessage(error.shortMessage || error.reason || error.message);
+            }
+        }
+
+        /* =====================================
+           APPROVE AND RELEASE
+        ===================================== */
+
+        async function approveAndRelease() {
+            try {
+                if (!contract) throw new Error("Connect Wallet first.");
+
+                const id = document.getElementById("releaseJobId").value;
+
+                if (id === "") throw new Error("Enter Job ID.");
+
+                const tx = await contract.approveAndRelease(id);
+
+                showMessage("Releasing payment...");
+
+                await tx.wait();
+
+                addTransaction("Approve & Release", tx.hash);
+
+                showMessage("Payment released to freelancer!");
+
+                await refreshDashboard();
+
+            } catch (error) {
+                console.error(error);
+                showMessage(error.shortMessage || error.reason || error.message);
+            }
+        }
+
+        /* =====================================
+           RAISE DISPUTE
+        ===================================== */
+
+        async function raiseDispute() {
+            try {
+                if (!contract) throw new Error("Connect Wallet first.");
+
+                const id = document.getElementById("disputeJobId").value;
+
+                const reason =
+                    document.getElementById("disputeReason").value.trim();
+
+                if (id === "" || !reason)
+                    throw new Error("Enter Job ID and dispute reason.");
+
+                const tx = await contract.raiseDispute(id, reason);
+
+                showMessage("Submitting dispute...");
+
+                await tx.wait();
+
+                addTransaction("Raise Dispute", tx.hash);
+
+                showMessage("Dispute submitted successfully!");
+
+                await refreshDashboard();
+
+            } catch (error) {
+                console.error(error);
+                showMessage(error.shortMessage || error.reason || error.message);
+            }
+        }
+
+        /* =====================================
+           RESOLVE DISPUTE
+        ===================================== */
+
+        async function resolveDispute() {
+            try {
+                if (!contract) throw new Error("Connect Wallet first.");
+
+                const id = document.getElementById("resolveJobId").value;
+
+                if (id === "") throw new Error("Enter Job ID.");
+
+                const decision =
+                    document.getElementById("decision").value === "true";
+
+                const tx = await contract.resolveDispute(id, decision);
+
+                showMessage("Resolving dispute...");
+
+                await tx.wait();
+
+                addTransaction("Resolve Dispute", tx.hash);
+
+                showMessage("Dispute resolved successfully!");
+
+                await refreshDashboard();
+
+            } catch (error) {
+                console.error(error);
+                showMessage(error.shortMessage || error.reason || error.message);
+            }
+        }
+
+
+        // =====================================
+        // RATING & REVIEW FUNCTIONS
+        // =====================================
+
+        // 1. Submit Freelancer Review
+        async function rateFreelancer() {
+            try {
+                if (!contract || !signer) {
+                    showMessage("Please connect your wallet first.", "error");
+                    return;
+                }
+
+                const jobId = document.getElementById("reviewJobId").value;
+                const rating = Number(
+                    document.getElementById("reviewRating").value
+                );
+                const comment = document.getElementById("reviewComment").value.trim();
+
+                if (!jobId || Number(jobId) <= 0) {
+                    showMessage("Please enter a valid Job ID.", "error");
+                    return;
+                }
+
+                if (rating < 1 || rating > 5) {
+                    showMessage("Rating must be between 1 and 5.", "error");
+                    return;
+                }
+
+                if (!comment) {
+                    showMessage("Please enter a review comment.", "error");
+                    return;
+                }
+
+                // Check job status
+                const job = await contract.getJob(jobId);
+
+                // Status 4 = Released
+                if (Number(job.status) !== 4) {
+                    showMessage("Only completed and released jobs can be reviewed.", "error");
+                    return;
+                }
+
+                // Check employer
+                const walletAddress = await signer.getAddress();
+
+                if (job.employer.toLowerCase() !== walletAddress.toLowerCase()) {
+                    showMessage("Only the employer can review this job.", "error");
+                    return;
+                }
+
+                // Check duplicate review
+                const alreadyReviewed = await contract.hasReviewed(jobId);
+
+                if (alreadyReviewed) {
+                    showMessage("You have already reviewed this job.", "error");
+                    return;
+                }
+
+                showMessage("Please confirm the transaction in MetaMask.", "info");
+
+                const tx = await contract.rateFreelancer(
+                    jobId,
+                    rating,
+                    comment
+                );
+
+                showMessage("Submitting review...", "info");
+
+                await tx.wait();
+
+                addTransaction(
+                    "Freelancer Review",
+                    tx.hash,
+                    "Completed"
+                );
+
+                showMessage("Review submitted successfully!", "success");
+
+                document.getElementById("reviewComment").value = "";
+
+                await refreshDashboard();
+
+            } catch (error) {
+                console.error("Rating Error:", error);
+                showMessage(
+                    error.reason || error.shortMessage || error.message || "Failed to submit review.",
+                    "error"
+                );
+            }
+        }
+
+
+        // 2. View Review by Job ID
+        async function viewReview() {
+            try {
+                if (!contract) {
+                    showMessage("Please connect your wallet first.", "error");
+                    return;
+                }
+
+                const jobId = document.getElementById("viewReviewJobId").value;
+
+                if (!jobId || Number(jobId) <= 0) {
+                    showMessage("Please enter a valid Job ID.", "error");
+                    return;
+                }
+
+                const alreadyReviewed = await contract.hasReviewed(jobId);
+
+                const result = document.getElementById("reviewResult");
+                result.innerHTML = "";
+
+                if (!alreadyReviewed) {
+                    result.textContent = "No review found for this job.";
+                    return;
+                }
+
+                const review = await contract.getReview(jobId);
+
+                const reviewer = review.reviewer ?? review[0];
+                const rating = Number(review.rating ?? review[1]);
+                const comment = review.comment ?? review[2];
+                const timestamp = Number(review.timestamp ?? review[3]);
+
+                const date = new Date(timestamp * 1000).toLocaleString();
+
+                const heading = document.createElement("h4");
+                heading.textContent = "Review Details";
+
+                const reviewerText = document.createElement("p");
+                reviewerText.textContent = "Reviewer: " + reviewer;
+
+                const ratingText = document.createElement("p");
+                ratingText.textContent = "Rating: " + "⭐".repeat(rating);
+
+                const commentText = document.createElement("p");
+                commentText.textContent = "Comment: " + comment;
+
+                const dateText = document.createElement("p");
+                dateText.textContent = "Date: " + date;
+
+                result.append(
+                    heading,
+                    reviewerText,
+                    ratingText,
+                    commentText,
+                    dateText
+                );
+
+            } catch (error) {
+                console.error("View Review Error:", error);
+                showMessage(
+                    error.reason || error.shortMessage || error.message || "Cannot load review.",
+                    "error"
+                );
+            }
+        }
+
+
+        // 3. View Freelancer Average Rating
+        async function viewFreelancerRating() {
+            try {
+                if (!contract) {
+                    showMessage("Please connect your wallet first.", "error");
+                    return;
+                }
+
+                const address = document.getElementById(
+                    "ratingFreelancerAddress"
+                ).value.trim();
+
+                const result = document.getElementById(
+                    "freelancerRatingResult"
+                );
+
+                result.innerHTML = "";
+
+                if (!ethers.isAddress(address)) {
+                    showMessage("Invalid wallet address.", "error");
+                    return;
+                }
+
+                const [totalRating, reviewCount] = await Promise.all([
+                    contract.totalRating(address),
+                    contract.reviewCount(address)
+                ]);
+
+                const total = Number(totalRating);
+                const count = Number(reviewCount);
+
+                const average = count > 0
+                    ? (total / count).toFixed(2)
+                    : "0.00";
+
+                const title = document.createElement("h4");
+                title.textContent = "Freelancer Rating";
+
+                const averageText = document.createElement("p");
+                averageText.textContent = "Average Rating: " + average + " / 5";
+
+                const starsText = document.createElement("p");
+                starsText.textContent =
+                    count > 0 ? "⭐".repeat(Math.round(total / count)) : "No ratings yet";
+
+                const countText = document.createElement("p");
+                countText.textContent = "Total Reviews: " + count;
+
+                const addressText = document.createElement("p");
+                addressText.textContent = "Wallet: " + address;
+
+                result.append(
+                    title,
+                    averageText,
+                    starsText,
+                    countText,
+                    addressText
+                );
+
+            } catch (error) {
+                console.error("Freelancer Rating Error:", error);
+                showMessage(
+                    error.reason || error.shortMessage || error.message || "Cannot load freelancer rating.",
+                    "error"
+                );
+            }
+        }
+
+
+        /* =====================================
+           LOAD JOBS
+        ===================================== */
+
+        async function loadJobs() {
+            try {
+                if (!contract) return;
+
+                const count = await contract.getJobCount();
+
+                const container = document.getElementById("jobList");
+
+                container.innerHTML = "";
+
+                if (count === 0n) {
+                    container.innerHTML =
+                        '<p class="empty">No jobs found.</p>';
+                    return;
+                }
+
+                for (let i = 0n; i < count; i++) {
+                    const job = await contract.getJob(i);
+
+                    const status = Number(job.status);
+
+                    const deadline = new Date(
+                        Number(job.deadline) * 1000
+                    ).toLocaleString("th-TH");
+
+                    const card = document.createElement("div");
+                    card.className = "job-card";
+
+                    const heading = document.createElement("div");
+                    heading.className = "job-top";
+
+                    const title = document.createElement("h3");
+                    title.textContent = "#" + job.jobId + " " + job.title;
+
+                    const badge = document.createElement("span");
+                    badge.className = "status";
+                    badge.textContent = statusNames[status] || "Unknown";
+
+                    heading.append(title, badge);
+
+                    const details = document.createElement("div");
+                    details.className = "job-details";
+
+                    const description = document.createElement("p");
+                    description.textContent = job.description;
+
+                    const employer = document.createElement("p");
+                    employer.textContent = "Employer: " + job.employer;
+
+                    const freelancer = document.createElement("p");
+                    freelancer.textContent = "Freelancer: " + job.freelancer;
+
+                    const amount = document.createElement("p");
+                    amount.textContent =
+                        "Payment: " + ethers.formatEther(job.amount) + " ETH";
+
+                    const due = document.createElement("p");
+                    due.textContent = "Deadline: " + deadline;
+
+                    const evidence = document.createElement("p");
+                    evidence.textContent =
+                        "Evidence: " + (job.workEvidence || "Not submitted");
+
+                    details.append(
+                        description,
+                        employer,
+                        freelancer,
+                        amount,
+                        due,
+                        evidence
+                    );
+
+                    if (status === 3 && job.disputeReason) {
+                        const reason = document.createElement("p");
+                        reason.textContent = "Dispute: " + job.disputeReason;
+                        details.append(reason);
+                    }
+
+                    card.append(heading, details);
+                    container.append(card);
+                }
+
+            } catch (error) {
+                console.error(error);
+                showMessage("Cannot load jobs.");
+            }
+        }
+
+        /* =====================================
+           TRANSACTION HISTORY
+        ===================================== */
+
+        function addTransaction(type, hash) {
+            const container = document.getElementById("transactionList");
+
+            const empty = container.querySelector(".empty");
+            if (empty) empty.remove();
+
+            const item = document.createElement("div");
+            item.className = "job-card";
+
+            const title = document.createElement("h3");
+            title.textContent = type;
+
+            const link = document.createElement("a");
+            link.className = "tx-link";
+            link.href = "https://sepolia.etherscan.io/tx/" + hash;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = "View Transaction: " + hash;
+
+            item.append(title, link);
+            container.prepend(item);
+        }
+
+        /* =====================================
+           START
+        ===================================== */
+
+        window.addEventListener("load", checkConnection);
+    </script>
+
+</body>
+
+</html>
