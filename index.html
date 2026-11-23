@@ -428,7 +428,6 @@
             <a href="#myJobs">My Jobs</a>
             <a href="#payment">Payment</a>
             <a href="#dispute">Dispute Center</a>
-            <a href="#reviews">Rating & Review</a>
             <a href="#transactions">Transaction History</a>
         </aside>
 
@@ -589,59 +588,7 @@
             </section>
 
 
-            <!-- ===== Rating & Review Section ===== -->
-            <section id="reviews" class="section">
-                <h2>Rating & Review Freelancer</h2>
-                <p>ให้คะแนนและเขียนรีวิวฟรีแลนซ์หลังจากงานเสร็จสิ้น</p>
 
-                <div class="card">
-                    <h3>Give a Rating</h3>
-
-                    <label>Job ID</label>
-                    <input type="number" id="reviewJobId" placeholder="Enter Job ID">
-
-                    <label>Rating</label>
-                    <select id="reviewRating">
-                        <option value="5">⭐⭐⭐⭐⭐ - Excellent</option>
-                        <option value="4">⭐⭐⭐⭐ - Very Good</option>
-                        <option value="3">⭐⭐⭐ - Good</option>
-                        <option value="2">⭐⭐ - Fair</option>
-                        <option value="1">⭐ - Poor</option>
-                    </select>
-
-                    <label>Comment</label>
-                    <textarea id="reviewComment" placeholder="Write your review..."></textarea>
-
-                    <button onclick="rateFreelancer()">
-                        Submit Review
-                    </button>
-                </div>
-
-                <div class="card">
-                    <h3>View Job Review</h3>
-
-                    <input type="number" id="viewReviewJobId" placeholder="Enter Job ID">
-
-                    <button onclick="viewReview()">
-                        View Review
-                    </button>
-
-                    <div id="reviewResult"></div>
-                </div>
-
-                <div class="card">
-                    <h3>Freelancer Rating</h3>
-
-                    <input type="text" id="ratingFreelancerAddress" placeholder="Enter Freelancer Wallet Address">
-
-                    <button onclick="viewFreelancerRating()">
-                        Check Rating
-                    </button>
-
-                    <div id="freelancerRatingResult"></div>
-                </div>
-            </section>
-            <!-- ===== End Rating & Review Section ===== -->
 
 
             <!-- Transactions -->
@@ -667,7 +614,7 @@
         ===================================== */
 
         // ใส่ Contract Address แบบเต็มจาก Remix
-        const CONTRACT_ADDRESS = "0xC3F205B899124b1C78631aC50eeDE783d19aA1E1";
+        const CONTRACT_ADDRESS = "0x0627FF556d047517E23073A3Fb4aBb3414C84933";
 
         // Ethereum Sepolia Chain ID
         const SEPOLIA_CHAIN_ID = 11155111;
@@ -675,7 +622,6 @@
         // Contract ABI
         const CONTRACT_ABI = [
             "function arbiter() view returns (address)",
-            "function jobCount() view returns (uint256)",
             "function createJob(address,string,string,uint256,uint256) returns (uint256)",
             "function depositPayment(uint256) payable",
             "function submitWork(uint256,string)",
@@ -685,12 +631,7 @@
             "function getJob(uint256) view returns (tuple(uint256 jobId,address employer,address freelancer,string title,string description,uint256 amount,uint256 deadline,string workEvidence,string disputeReason,uint8 status))",
             "function getJobCount() view returns (uint256)",
             "function getEscrowBalance() view returns (uint256)",
-            "function getStatus(uint256) view returns (uint8)",
-            "function rateFreelancer(uint256 _jobId,uint8 _rating,string _comment)",
-            "function getReview(uint256 _jobId) view returns (tuple(address reviewer,uint8 rating,string comment,uint256 timestamp))",
-            "function hasReviewed(uint256) view returns (bool)",
-            "function totalRating(address) view returns (uint256)",
-            "function reviewCount(address) view returns (uint256)"
+            "function getStatus(uint256) view returns (uint8)"
         ];
 
         let provider;
@@ -1080,234 +1021,6 @@
             } catch (error) {
                 console.error(error);
                 showMessage(error.shortMessage || error.reason || error.message);
-            }
-        }
-
-
-        // =====================================
-        // RATING & REVIEW FUNCTIONS
-        // =====================================
-
-        // 1. Submit Freelancer Review
-        async function rateFreelancer() {
-            try {
-                if (!contract || !signer) {
-                    showMessage("Please connect your wallet first.", "error");
-                    return;
-                }
-
-                const jobId = document.getElementById("reviewJobId").value;
-                const rating = Number(
-                    document.getElementById("reviewRating").value
-                );
-                const comment = document.getElementById("reviewComment").value.trim();
-
-                if (!jobId || Number(jobId) <= 0) {
-                    showMessage("Please enter a valid Job ID.", "error");
-                    return;
-                }
-
-                if (rating < 1 || rating > 5) {
-                    showMessage("Rating must be between 1 and 5.", "error");
-                    return;
-                }
-
-                if (!comment) {
-                    showMessage("Please enter a review comment.", "error");
-                    return;
-                }
-
-                // Check job status
-                const job = await contract.getJob(jobId);
-
-                // Status 4 = Released
-                if (Number(job.status) !== 4) {
-                    showMessage("Only completed and released jobs can be reviewed.", "error");
-                    return;
-                }
-
-                // Check employer
-                const walletAddress = await signer.getAddress();
-
-                if (job.employer.toLowerCase() !== walletAddress.toLowerCase()) {
-                    showMessage("Only the employer can review this job.", "error");
-                    return;
-                }
-
-                // Check duplicate review
-                const alreadyReviewed = await contract.hasReviewed(jobId);
-
-                if (alreadyReviewed) {
-                    showMessage("You have already reviewed this job.", "error");
-                    return;
-                }
-
-                showMessage("Please confirm the transaction in MetaMask.", "info");
-
-                const tx = await contract.rateFreelancer(
-                    jobId,
-                    rating,
-                    comment
-                );
-
-                showMessage("Submitting review...", "info");
-
-                await tx.wait();
-
-                addTransaction(
-                    "Freelancer Review",
-                    tx.hash,
-                    "Completed"
-                );
-
-                showMessage("Review submitted successfully!", "success");
-
-                document.getElementById("reviewComment").value = "";
-
-                await refreshDashboard();
-
-            } catch (error) {
-                console.error("Rating Error:", error);
-                showMessage(
-                    error.reason || error.shortMessage || error.message || "Failed to submit review.",
-                    "error"
-                );
-            }
-        }
-
-
-        // 2. View Review by Job ID
-        async function viewReview() {
-            try {
-                if (!contract) {
-                    showMessage("Please connect your wallet first.", "error");
-                    return;
-                }
-
-                const jobId = document.getElementById("viewReviewJobId").value;
-
-                if (!jobId || Number(jobId) <= 0) {
-                    showMessage("Please enter a valid Job ID.", "error");
-                    return;
-                }
-
-                const alreadyReviewed = await contract.hasReviewed(jobId);
-
-                const result = document.getElementById("reviewResult");
-                result.innerHTML = "";
-
-                if (!alreadyReviewed) {
-                    result.textContent = "No review found for this job.";
-                    return;
-                }
-
-                const review = await contract.getReview(jobId);
-
-                const reviewer = review.reviewer ?? review[0];
-                const rating = Number(review.rating ?? review[1]);
-                const comment = review.comment ?? review[2];
-                const timestamp = Number(review.timestamp ?? review[3]);
-
-                const date = new Date(timestamp * 1000).toLocaleString();
-
-                const heading = document.createElement("h4");
-                heading.textContent = "Review Details";
-
-                const reviewerText = document.createElement("p");
-                reviewerText.textContent = "Reviewer: " + reviewer;
-
-                const ratingText = document.createElement("p");
-                ratingText.textContent = "Rating: " + "⭐".repeat(rating);
-
-                const commentText = document.createElement("p");
-                commentText.textContent = "Comment: " + comment;
-
-                const dateText = document.createElement("p");
-                dateText.textContent = "Date: " + date;
-
-                result.append(
-                    heading,
-                    reviewerText,
-                    ratingText,
-                    commentText,
-                    dateText
-                );
-
-            } catch (error) {
-                console.error("View Review Error:", error);
-                showMessage(
-                    error.reason || error.shortMessage || error.message || "Cannot load review.",
-                    "error"
-                );
-            }
-        }
-
-
-        // 3. View Freelancer Average Rating
-        async function viewFreelancerRating() {
-            try {
-                if (!contract) {
-                    showMessage("Please connect your wallet first.", "error");
-                    return;
-                }
-
-                const address = document.getElementById(
-                    "ratingFreelancerAddress"
-                ).value.trim();
-
-                const result = document.getElementById(
-                    "freelancerRatingResult"
-                );
-
-                result.innerHTML = "";
-
-                if (!ethers.isAddress(address)) {
-                    showMessage("Invalid wallet address.", "error");
-                    return;
-                }
-
-                const [totalRating, reviewCount] = await Promise.all([
-                    contract.totalRating(address),
-                    contract.reviewCount(address)
-                ]);
-
-                const total = Number(totalRating);
-                const count = Number(reviewCount);
-
-                const average = count > 0
-                    ? (total / count).toFixed(2)
-                    : "0.00";
-
-                const title = document.createElement("h4");
-                title.textContent = "Freelancer Rating";
-
-                const averageText = document.createElement("p");
-                averageText.textContent = "Average Rating: " + average + " / 5";
-
-                const starsText = document.createElement("p");
-                starsText.textContent =
-                    count > 0 ? "⭐".repeat(Math.round(total / count)) : "No ratings yet";
-
-                const countText = document.createElement("p");
-                countText.textContent = "Total Reviews: " + count;
-
-                const addressText = document.createElement("p");
-                addressText.textContent = "Wallet: " + address;
-
-                result.append(
-                    title,
-                    averageText,
-                    starsText,
-                    countText,
-                    addressText
-                );
-
-            } catch (error) {
-                console.error("Freelancer Rating Error:", error);
-                showMessage(
-                    error.reason || error.shortMessage || error.message || "Cannot load freelancer rating.",
-                    "error"
-                );
             }
         }
 
